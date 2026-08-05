@@ -49,3 +49,10 @@ export function removeById(commentId) {
 export function count() {
   return flaggedStore.size;
 }
+
+/**
+ * Clear all comments from the store (used when starting a new session).
+ */
+export function clearStore() {
+  flaggedStore.clear();
+}

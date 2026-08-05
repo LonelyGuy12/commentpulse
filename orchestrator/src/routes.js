@@ -1,7 +1,7 @@
 // routes.js - Express route definitions for the orchestrator API.
 
 import { Router } from 'express';
-import { getFlagged, removeById, addFlagged } from './store.js';
+import { getFlagged, removeById, addFlagged, clearStore } from './store.js';
 import { banUser, fetchLatestComments, markAsSpam } from './youtube.js';
 import { pollAndAnalyze } from './cron.js';
 import { analyzeComment } from './analyzer.js';
@@ -17,8 +17,8 @@ function extractVideoId(input) {
   // youtu.be/ID
   const shortMatch = s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
   if (shortMatch) return shortMatch[1];
-  // youtube.com/watch?v=ID  or  /shorts/ID  or  /embed/ID
-  const longMatch = s.match(/(?:v=|\/shorts\/|\/embed\/|\/v\/)([A-Za-z0-9_-]{11})/);
+  // youtube.com/watch?v=ID  or  /shorts/ID  or  /embed/ID  or /live/ID
+  const longMatch = s.match(/(?:v=|\/shorts\/|\/embed\/|\/v\/|\/live\/)([A-Za-z0-9_-]{11})/);
   if (longMatch) return longMatch[1];
   // bare 11-char ID
   if (/^[A-Za-z0-9_-]{11}$/.test(s)) return s;
@@ -207,6 +207,9 @@ router.post('/monitor-live', async (req, res) => {
   }
 
   const result = await startSession(videoId);
+  if (result.success) {
+    clearStore();
+  }
   return res.status(result.success ? 200 : 400).json({ videoId, ...result });
 });
 

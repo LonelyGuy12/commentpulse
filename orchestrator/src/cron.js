@@ -1,11 +1,13 @@
 // cron.js - Polling job: fetches YouTube comments and analyzes them.
 // Schedule: every 5 minutes
 // Risk threshold: comments with riskScore >= 50 are stored.
+// NOTE: polling is automatically paused while live sessions are active.
 
 import cron from 'node-cron';
 import { fetchLatestComments } from './youtube.js';
 import { analyzeComment } from './analyzer.js';
 import { addFlagged, count } from './store.js';
+import { getSessions } from './livechat.js';
 
 const VIDEO_ID = process.env.MOCK_VIDEO_ID ?? 'dQw4w9WgXcQ';
 const RISK_THRESHOLD = parseInt(process.env.RISK_THRESHOLD ?? '50', 10);
@@ -15,6 +17,14 @@ const RISK_THRESHOLD = parseInt(process.env.RISK_THRESHOLD ?? '50', 10);
  * the POST /trigger-poll debug endpoint.
  */
 export async function pollAndAnalyze() {
+  // Skip VOD polling while live chat sessions are active to avoid
+  // polluting the threat feed with unrelated video comments.
+  const activeSessions = getSessions().filter(s => s.status === 'active');
+  if (activeSessions.length > 0) {
+    console.log(`[Cron] Skipping VOD poll — ${activeSessions.length} live session(s) active.`);
+    return;
+  }
+
   console.log(`[Cron] Polling video ${VIDEO_ID} at ${new Date().toISOString()}`);
 
   const comments = await fetchLatestComments(VIDEO_ID);

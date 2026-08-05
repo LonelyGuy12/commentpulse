@@ -78,14 +78,33 @@ _BODY_PATTERNS = [
 ]
 
 
-_BANNED_WORDS = [
-    # Common abusive or offensive terms
-    r"\b(idiot|stupid|moron|dumb|dumbass|retard)\b",
-    r"\b(scum|trash|bitch|fuck|shit|asshole|cunt)\b",
-    r"\b(kill yourself|kys|die)\b",
+_BANNED_WORDS_SEVERE = [
+    # Targeted / directed severe abuse — score 100
+    r"\b(kill yourself|kys|go die|end your life|kill urself)\b",
+    r"\b(cunt|n[i1]gg[ae]r)\b",
+    r"\b(fuck\s+you|fuk\s+u|f\*ck\s+you)\b",
+    r"\b(you('re|\s+are)\s+(an?\s+)?(idiot|moron|retard|dumbass|imbecile))\b",
+    r"\b(asshole|a[\*@]shole|a55hole)\b",
+    r"\b(bitch\s+ass|dumb\s*ass|dumb\s*fuck)\b",
 ]
 
-_BANNED_WORDS_PATTERNS = [re.compile(p, re.IGNORECASE) for p in _BANNED_WORDS]
+_BANNED_WORDS_MODERATE = [
+    # Common strong profanity — score 60 (still flagged, but less severe)
+    r"\bfuck\b",
+    r"\bshit\b",
+    r"\bbitch\b",
+    r"\bdamn\b",
+    r"\bcrappy\b",
+    r"\bpiss\s+off\b",
+    r"\bscrew\s+you\b",
+    r"\bmoron\b",
+    r"\bidiot\b",
+    r"\bdumbass\b",
+    r"\bstupid\s+ass\b",
+]
+
+_BANNED_SEVERE_PATTERNS  = [re.compile(p, re.IGNORECASE) for p in _BANNED_WORDS_SEVERE]
+_BANNED_MODERATE_PATTERNS = [re.compile(p, re.IGNORECASE) for p in _BANNED_WORDS_MODERATE]
 
 def _scan_body(text: str) -> list[str]:
     flags = []
@@ -93,12 +112,18 @@ def _scan_body(text: str) -> list[str]:
         if pattern.search(text):
             flags.append("Obfuscated Link Detected")
             break
-            
-    for pattern in _BANNED_WORDS_PATTERNS:
+
+    for pattern in _BANNED_SEVERE_PATTERNS:
         if pattern.search(text):
-            flags.append("Abusive Language")
+            flags.append("Severe Abuse")
             break
-            
+
+    if "Severe Abuse" not in flags:
+        for pattern in _BANNED_MODERATE_PATTERNS:
+            if pattern.search(text):
+                flags.append("Abusive Language")
+                break
+
     return flags
 
 
@@ -141,7 +166,15 @@ async def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
     body_flags = _scan_body(normalized_text)
 
     all_flags = imp_flags + body_flags
-    body_bonus = 40 if body_flags else 0
+    
+    body_bonus = 0
+    if "Severe Abuse" in body_flags:
+        body_bonus = 100
+    elif "Abusive Language" in body_flags:
+        body_bonus = 60
+    elif "Obfuscated Link Detected" in body_flags:
+        body_bonus = 40
+
     det_score = min(100, imp_score + body_bonus)
 
     if det_score >= 85 and not is_impersonator and body_flags:
@@ -155,7 +188,13 @@ async def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
 
         if llm is not None:
             # Blend: 60% deterministic, 40% LLM
-            det_score = min(100, round(det_score * 0.6 + llm.threat_score * 0.4))
+            blended = min(100, round(det_score * 0.6 + llm.threat_score * 0.4))
+            
+            # Never let the LLM lower the score for confirmed abusive language
+            if "Abusive Language" in body_flags:
+                det_score = max(blended, 70)
+            else:
+                det_score = blended
 
             # Merge category flags (deduplicated, order preserved)
             llm_flags = format_llm_flags(llm)

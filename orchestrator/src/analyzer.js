@@ -26,9 +26,13 @@ const CREATOR_NAME = process.env.CREATOR_NAME ?? 'ChannelOwner';
  * } | null>} — null if the request to the engine failed
  */
 export async function analyzeComment(comment) {
+  // Live chat messages use `displayMessage`; VOD comments use `commentText`.
+  // Normalize to one field so the threat engine always gets real text.
+  const resolvedText = comment.commentText ?? comment.displayMessage ?? '';
+
   try {
     const { data } = await axios.post(`${THREAT_ENGINE_URL}/analyze`, {
-      comment_text: comment.commentText,
+      comment_text: resolvedText,
       author_name: comment.authorName,
       creator_name: CREATOR_NAME,
     });
@@ -37,7 +41,7 @@ export async function analyzeComment(comment) {
       id: comment.id,
       videoId: comment.videoId,
       authorName: comment.authorName,
-      commentText: comment.commentText,
+      commentText: resolvedText,   // always a real string now
       normalizedText: data.normalized_text,
       riskScore: data.risk_score,
       isImpersonator: data.is_impersonator,

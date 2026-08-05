@@ -119,6 +119,8 @@ export function getSessions() {
 
 async function _pollLoop(session) {
   let pageToken = undefined;
+  let nullTokenRetries = 0;
+  const MAX_NULL_RETRIES = 5;
 
   while (!session._stopFlag.value) {
     try {
@@ -128,10 +130,12 @@ async function _pollLoop(session) {
       );
 
       session.lastPollAt = new Date().toISOString();
+      console.log(`[LiveChat] Poll ${session.videoId}: ${messages.length} new msgs | nextPageToken=${!!nextPageToken} | waitMs=${pollIntervalMs}`);
 
       if (messages.length > 0) {
         console.log(`[LiveChat] ${session.videoId}: ${messages.length} new messages`);
         session.messagesScanned += messages.length;
+        nullTokenRetries = 0; // reset on success
 
         // Analyze each message through the threat engine
         for (const msg of messages) {
@@ -143,7 +147,12 @@ async function _pollLoop(session) {
           };
 
           const result = await analyzeComment(enriched);
-          if (result && result.riskScore >= RISK_THRESHOLD) {
+          if (!result) {
+            console.log(`[LiveChat] ⚠️ Analyzer returned null for: "${msg.commentText}"`);
+            continue;
+          }
+          console.log(`[LiveChat] Score: "${msg.commentText}" → score=${result.riskScore} flags=[${result.flags.join(', ')}]`);
+          if (result.riskScore >= RISK_THRESHOLD) {
             addFlagged(result);
             session.threatsFlagged++;
             console.log(
@@ -152,7 +161,7 @@ async function _pollLoop(session) {
             );
             
             // Explicitly log abusive messages to a dedicated file
-            if (result.flags.includes('Abusive Language')) {
+            if (result.flags.includes('Abusive Language') || result.flags.includes('Severe Abuse')) {
               const logFile = path.join(process.cwd(), 'abuse.log');
               const logLine = `[${new Date().toISOString()}] LIVE CHAT ABUSE | Video: ${session.videoId} | Author: ${result.authorName} | Msg: ${result.commentText}\n`;
               fs.appendFileSync(logFile, logLine);
@@ -161,13 +170,21 @@ async function _pollLoop(session) {
         }
       }
 
-      // nextPageToken may be null if stream ended
+      // nextPageToken is null on transient API issues or actual stream end.
+      // Retry a few times before marking as stopped.
       if (!nextPageToken) {
-        console.log(`[LiveChat] Stream ended or no more pages for ${session.videoId}.`);
-        session.status = 'stopped';
-        break;
+        nullTokenRetries++;
+        if (nullTokenRetries >= MAX_NULL_RETRIES) {
+          console.log(`[LiveChat] No nextPageToken after ${MAX_NULL_RETRIES} retries — assuming stream ended for ${session.videoId}.`);
+          session.status = 'stopped';
+          break;
+        }
+        console.log(`[LiveChat] No nextPageToken (attempt ${nullTokenRetries}/${MAX_NULL_RETRIES}), retrying in 5s…`);
+        await _sleep(5000);
+        continue; // retry with same pageToken
       }
 
+      nullTokenRetries = 0;
       pageToken = nextPageToken;
 
       // Respect the API's required polling interval

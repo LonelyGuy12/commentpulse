@@ -109,6 +109,7 @@ export async function fetchLiveChatPage(liveChatId, pageToken = undefined) {
     });
 
     const data = response.data;
+    console.log(`[LiveChat][API] totalResults=${data.pageInfo?.totalResults} | itemsRaw=${data.items?.length ?? 0} | nextPageToken=${!!data.nextPageToken} | pollingMs=${data.pollingIntervalMillis}`);
     const messages = (data.items ?? [])
       .filter(item => item.snippet.type === 'textMessageEvent') // only text messages
       .map(item => ({
