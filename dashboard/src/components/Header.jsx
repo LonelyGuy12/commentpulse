@@ -1,28 +1,43 @@
 // Header.jsx — sticky navigation bar with live status indicator
 
+import { Link, useLocation } from 'react-router-dom';
+
 const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL ?? 'http://localhost:3001';
 
 export default function Header({ count, onRefresh, loading, isAuthenticated, onLogin }) {
+  const location = useLocation();
+  const isDashboard = location.pathname === '/dashboard';
+
   return (
     <header className="header">
-      <div className="header-brand">
+      <Link to="/" className="header-brand">
         <div className="header-logo">🛡️</div>
         <span className="header-title">CommentPulse</span>
-      </div>
+      </Link>
 
       <div className="header-right">
-        <div className="live-badge">
-          <span className="live-dot" />
-          Live
-        </div>
+        {!isDashboard && (
+          <Link to="/dashboard" className="btn btn-ghost">
+            Dashboard
+          </Link>
+        )}
 
-        <span className="header-stat">
-          <strong>{count}</strong> threats detected
-        </span>
+        {isDashboard && (
+          <>
+            <div className="live-badge">
+              <span className="live-dot" />
+              Live
+            </div>
 
-        <button className="btn btn-ghost" onClick={onRefresh} disabled={loading}>
-          {loading ? '↻ Refreshing…' : '↻ Refresh'}
-        </button>
+            <span className="header-stat">
+              <strong>{count}</strong> threats detected
+            </span>
+
+            <button className="btn btn-ghost" onClick={onRefresh} disabled={loading}>
+              {loading ? '↻ Refreshing…' : '↻ Refresh'}
+            </button>
+          </>
+        )}
 
         {isAuthenticated ? (
           <span className="badge badge-success" style={{ marginLeft: '10px' }}>✓ Logged In</span>
