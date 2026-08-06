@@ -42,9 +42,58 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [lastFetch, setLastFetch] = useState(null);
   const [liveSessions, setLiveSessions] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toasts, addToast } = useToasts();
   const intervalRef = useRef(null);
   const liveIntervalRef = useRef(null);
+
+  /* ── Check Auth & Handle OAuth Callback ── */
+  useEffect(() => {
+    async function initAuth() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      
+      if (code) {
+        // Exchange code
+        try {
+          const res = await fetch(`${ORCHESTRATOR_URL}/auth/exchange`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+          });
+          if (res.ok) {
+            setIsAuthenticated(true);
+            addToast('Successfully authenticated with YouTube!', 'success');
+          } else {
+            addToast('Failed to authenticate.', 'error');
+          }
+        } catch (err) {
+          addToast('Auth error: ' + err.message, 'error');
+        }
+        
+        // Clean URL
+        window.history.replaceState({}, document.title, '/');
+      } else {
+        // Check current status
+        try {
+          const res = await fetch(`${ORCHESTRATOR_URL}/auth/status`);
+          const data = await res.json();
+          setIsAuthenticated(data.isAuthenticated);
+        } catch (err) {}
+      }
+    }
+    initAuth();
+  }, [addToast]);
+
+  const handleLogin = async () => {
+    try {
+      const res = await fetch(`${ORCHESTRATOR_URL}/auth/url`);
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } catch (err) {
+      addToast('Failed to get login URL: ' + err.message, 'error');
+    }
+  };
 
   /* ── Fetch flagged comments ── */
   const fetchFlagged = useCallback(async (silent = false) => {
@@ -75,19 +124,6 @@ export default function App() {
       console.error('[Dashboard] fetchLiveSessions failed:', err);
     }
   }, []);
-
-  /* ── Seed mock data for demos ── */
-  const handleSeed = useCallback(async () => {
-    try {
-      const res = await fetch(`${ORCHESTRATOR_URL}/seed`, { method: 'POST' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { message } = await res.json();
-      addToast(`🧪 ${message}`, 'success');
-      await fetchFlagged();
-    } catch (err) {
-      addToast(`Seed failed: ${err.message}`, 'error');
-    }
-  }, [addToast, fetchFlagged]);
 
   /* ── Remove a banned comment from local state ── */
   const handleBanned = useCallback((commentId) => {
@@ -132,9 +168,10 @@ export default function App() {
     <div className="app-shell">
       <Header
         count={comments.length}
-        onSeed={handleSeed}
         onRefresh={() => fetchFlagged()}
         loading={loading}
+        isAuthenticated={isAuthenticated}
+        onLogin={handleLogin}
       />
 
       <main className="main-content">
@@ -193,8 +230,7 @@ export default function App() {
             <div className="empty-state-icon">🎉</div>
             <h2>No threats detected</h2>
             <p>
-              The comment section appears clean. Click <strong>Load Mock Data</strong> in the header to simulate
-              flagged comments, or wait for the orchestrator to poll YouTube.
+              The comment section appears clean. Paste a video URL or start a live session to begin monitoring.
             </p>
           </div>
         ) : (

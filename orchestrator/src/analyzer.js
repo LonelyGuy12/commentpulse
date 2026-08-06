@@ -40,7 +40,9 @@ export async function analyzeComment(comment) {
     return {
       id: comment.id,
       videoId: comment.videoId,
+      liveChatId: comment.liveChatId,
       authorName: comment.authorName,
+      authorChannelId: comment.authorChannelId,
       commentText: resolvedText,   // always a real string now
       normalizedText: data.normalized_text,
       riskScore: data.risk_score,

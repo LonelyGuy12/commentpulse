@@ -1,11 +1,11 @@
 // routes.js - Express route definitions for the orchestrator API.
 
 import { Router } from 'express';
-import { getFlagged, removeById, addFlagged, clearStore } from './store.js';
+import { getFlagged, removeById, addFlagged, clearStore, getById } from './store.js';
 import { banUser, fetchLatestComments, markAsSpam } from './youtube.js';
-import { pollAndAnalyze } from './cron.js';
 import { analyzeComment } from './analyzer.js';
 import { startSession, stopSession, getSessions } from './livechat.js';
+import { getAuthUrl, oauth2Client, setTokens, getTokens } from './auth.js';
 
 // ---------------------------------------------------------------------------
 // Helper: extract a YouTube video ID from a URL or bare ID string
@@ -58,7 +58,11 @@ router.post('/ban-user', async (req, res) => {
   }
 
   try {
-    const result = await banUser(commentId);
+    const comment = getById(commentId);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found in local store' });
+    }
+    const result = await banUser(comment);
     removeById(commentId);
     return res.json({ ...result, commentId });
   } catch (err) {
@@ -67,71 +71,35 @@ router.post('/ban-user', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// POST /trigger-poll  (debug / demo)
-// ---------------------------------------------------------------------------
 
-router.post('/trigger-poll', async (_req, res) => {
-  console.log('[Routes] Manual poll triggered via /trigger-poll');
-  // Run in background so the request returns immediately
-  pollAndAnalyze().catch((err) => console.error('[Routes] Poll error:', err));
-  res.json({ message: 'Poll started in background.' });
+// ---------------------------------------------------------------------------
+// GET /auth/url
+// ---------------------------------------------------------------------------
+router.get('/auth/url', (_req, res) => {
+  res.json({ url: getAuthUrl() });
 });
 
 // ---------------------------------------------------------------------------
-// POST /seed  (debug — inject realistic mock data for dashboard development)
+// POST /auth/exchange
 // ---------------------------------------------------------------------------
+router.post('/auth/exchange', async (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'Missing code' });
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    setTokens(tokens);
+    res.json({ message: 'Tokens stored successfully' });
+  } catch (err) {
+    console.error('[Routes] OAuth exchange error:', err.message);
+    res.status(500).json({ error: 'Token exchange failed', details: err.message });
+  }
+});
 
-router.post('/seed', (_req, res) => {
-  const mockComments = [
-    {
-      id: 'mock_001',
-      videoId: 'dQw4w9WgXcQ',
-      authorName: 'MrBеast',                          // Cyrillic 'е'
-      commentText: 'I give away $10,000 every week! DM me on telegram t.me/mrbeast_giveaway',
-      normalizedText: 'I give away $10,000 every week! DM me on telegram t.me/mrbeast_giveaway',
-      riskScore: 97,
-      isImpersonator: true,
-      flags: ['Impersonation Risk', 'Obfuscated Author Name', 'Obfuscated Link Detected'],
-      detectedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_002',
-      videoId: 'dQw4w9WgXcQ',
-      authorName: 'MrB3ast',
-      commentText: 'click below for free crypto — double your bitcoin! Send 0.1 BTC to get 0.2 back',
-      normalizedText: 'click below for free crypto — double your bitcoin! Send 0.1 BTC to get 0.2 back',
-      riskScore: 88,
-      isImpersonator: true,
-      flags: ['Impersonation Risk', 'Obfuscated Link Detected'],
-      detectedAt: new Date(Date.now() - 120_000).toISOString(),
-    },
-    {
-      id: 'mock_003',
-      videoId: 'dQw4w9WgXcQ',
-      authorName: 'MrBeast_Official',
-      commentText: 'Great video bro! Check my channel for similar content :-)',
-      normalizedText: 'Great video bro! Check my channel for similar content :-)',
-      riskScore: 61,
-      isImpersonator: false,
-      flags: ['Impersonation Risk'],
-      detectedAt: new Date(Date.now() - 300_000).toISOString(),
-    },
-    {
-      id: 'mock_004',
-      videoId: 'dQw4w9WgXcQ',
-      authorName: 'crypto_wizard99',
-      commentText: 'I was scammed but got my money back through this site: recovery(dot)xyz',
-      normalizedText: 'I was scammed but got my money back through this site: recovery(dot)xyz',
-      riskScore: 55,
-      isImpersonator: false,
-      flags: ['Obfuscated Link Detected'],
-      detectedAt: new Date(Date.now() - 600_000).toISOString(),
-    },
-  ];
-
-  mockComments.forEach(addFlagged);
-  res.json({ message: `Seeded ${mockComments.length} mock flagged comments.` });
+// ---------------------------------------------------------------------------
+// GET /auth/status
+// ---------------------------------------------------------------------------
+router.get('/auth/status', (_req, res) => {
+  res.json({ isAuthenticated: !!getTokens() });
 });
 
 // ---------------------------------------------------------------------------

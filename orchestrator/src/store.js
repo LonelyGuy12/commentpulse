@@ -35,6 +35,13 @@ export function getFlagged() {
 }
 
 /**
+ * Get a flagged comment by its ID.
+ */
+export function getById(commentId) {
+  return flaggedStore.get(commentId);
+}
+
+/**
  * Remove a comment from the store (called after a ban action).
  * @param {string} commentId
  */

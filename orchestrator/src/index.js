@@ -13,7 +13,6 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import routes from './routes.js';
-import { startPollingJob } from './cron.js';
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 
@@ -38,13 +37,8 @@ app.use('/', routes);
 
 app.listen(PORT, () => {
   console.log(`\n🚀 CommentPulse Orchestrator running on http://localhost:${PORT}`);
-  console.log(`   YouTube API Key: ${process.env.YOUTUBE_API_KEY ? '✅ set' : '⚠️  NOT SET (read-only mock mode)'}`);
-  console.log(`   Threat Engine:   ${process.env.THREAT_ENGINE_URL ?? 'http://localhost:8000'}`);
-  console.log(`   Poll target:     video/${process.env.MOCK_VIDEO_ID ?? 'dQw4w9WgXcQ'}\n`);
-  console.log('   📌 Tip: POST /seed to load mock flagged comments for dashboard dev');
-  console.log('   📌 Tip: POST /trigger-poll to manually run a poll cycle\n');
-
-  startPollingJob();
+  console.log(`   YouTube API Key: ${process.env.YOUTUBE_API_KEY ? '✅ set' : '⚠️  NOT SET (read-only mode)'}`);
+  console.log(`   Threat Engine:   ${process.env.THREAT_ENGINE_URL ?? 'http://localhost:8000'}\n`);
 });
 
 export default app;

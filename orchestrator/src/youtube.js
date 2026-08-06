@@ -3,6 +3,7 @@
 // OAuth2   → write operations (ban, markAsSpam, delete) — stubbed for MVP
 
 import { google } from 'googleapis';
+import { oauth2Client, getTokens } from './auth.js';
 
 const youtube = google.youtube({
   version: 'v3',
@@ -116,6 +117,7 @@ export async function fetchLiveChatPage(liveChatId, pageToken = undefined) {
         id: item.id,
         authorName: item.authorDetails.displayName,
         authorChannelId: item.authorDetails.channelId,
+        liveChatId,
         commentText: item.snippet.displayMessage,
         publishedAt: item.snippet.publishedAt,
         source: 'live',
@@ -136,10 +138,51 @@ export async function fetchLiveChatPage(liveChatId, pageToken = undefined) {
 // Moderation — OAuth2 required (stubbed)
 // ---------------------------------------------------------------------------
 
-export async function banUser(commentId) {
-  console.log(`[YouTube] [STUB] setModerationStatus(id=${commentId}, status="rejected", banAuthor=true)`);
-  // Real: await youtube.comments.setModerationStatus({ id: commentId, moderationStatus: 'rejected', banAuthor: true });
-  return { success: true, message: `[STUB] Comment ${commentId} banned.` };
+
+export async function banUser(comment) {
+  if (!comment.liveChatId || !comment.authorChannelId) {
+    return { success: false, message: 'Cannot ban: missing liveChatId or authorChannelId.' };
+  }
+  
+  if (!getTokens()) {
+    return { success: false, message: 'OAuth tokens missing. Please login via the dashboard.' };
+  }
+
+  const oauthYoutube = google.youtube({
+    version: 'v3',
+    auth: oauth2Client
+  });
+
+  try {
+    await oauthYoutube.liveChatBans.insert({
+      part: ['snippet'],
+      requestBody: {
+        snippet: {
+          liveChatId: comment.liveChatId,
+          type: 'permanent',
+          bannedUserDetails: {
+            channelId: comment.authorChannelId
+          }
+        }
+      }
+    });
+    
+    // Also delete the offending message so it disappears from the screen
+    try {
+      await oauthYoutube.liveChatMessages.delete({
+        id: comment.id
+      });
+      console.log(`[YouTube] Deleted offending message ${comment.id}`);
+    } catch (delErr) {
+      console.warn(`[YouTube] Could not delete message ${comment.id}:`, delErr.message);
+    }
+    
+    console.log(`[YouTube] Banned user ${comment.authorName} (${comment.authorChannelId}) from chat ${comment.liveChatId}`);
+    return { success: true, message: `Banned ${comment.authorName}.` };
+  } catch (err) {
+    console.error('[YouTube] Failed to ban user:', err.message);
+    return { success: false, message: err.message };
+  }
 }
 
 export async function markAsSpam(commentId) {

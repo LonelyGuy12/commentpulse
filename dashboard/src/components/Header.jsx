@@ -2,7 +2,7 @@
 
 const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL ?? 'http://localhost:3001';
 
-export default function Header({ count, onSeed, onRefresh, loading }) {
+export default function Header({ count, onRefresh, loading, isAuthenticated, onLogin }) {
   return (
     <header className="header">
       <div className="header-brand">
@@ -24,9 +24,13 @@ export default function Header({ count, onSeed, onRefresh, loading }) {
           {loading ? '↻ Refreshing…' : '↻ Refresh'}
         </button>
 
-        <button className="btn btn-primary" onClick={onSeed} title={`POST ${ORCHESTRATOR_URL}/seed`}>
-          🧪 Load Mock Data
-        </button>
+        {isAuthenticated ? (
+          <span className="badge badge-success" style={{ marginLeft: '10px' }}>✓ Logged In</span>
+        ) : (
+          <button className="btn btn-primary" onClick={onLogin} style={{ marginLeft: '10px' }}>
+            Login with YouTube
+          </button>
+        )}
       </div>
     </header>
   );
