@@ -108,6 +108,15 @@ router.get('/auth/status', (_req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /clear-feed  — clear the in-memory store of flagged comments
+// ---------------------------------------------------------------------------
+
+router.post('/clear-feed', (req, res) => {
+  clearStore();
+  res.json({ success: true, message: 'Feed cleared' });
+});
+
+// ---------------------------------------------------------------------------
 // POST /scan-video  — on-demand scan of any YouTube video
 // ---------------------------------------------------------------------------
 // Body: { "videoUrl": "https://youtube.com/watch?v=..." }

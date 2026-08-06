@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL ?? 'http://localhost:3001';
 
-export default function Header({ count, onRefresh, loading, isAuthenticated, onLogin }) {
+export default function Header({ count, onClear, loading, isAuthenticated, onLogin }) {
   const location = useLocation();
   const isDashboard = location.pathname === '/dashboard';
 
@@ -33,8 +33,8 @@ export default function Header({ count, onRefresh, loading, isAuthenticated, onL
               <strong>{count}</strong> threats detected
             </span>
 
-            <button className="btn btn-ghost" onClick={onRefresh} disabled={loading}>
-              {loading ? '↻ Refreshing…' : '↻ Refresh'}
+            <button className="btn btn-ghost" onClick={onClear} disabled={loading}>
+              {loading ? '🗑️ Clearing…' : '🗑️ Clear Feed'}
             </button>
           </>
         )}

@@ -105,9 +105,13 @@ export default function Dashboard({ isAuthenticated, onLogin }) {
     intervalRef.current = setInterval(() => fetchFlagged(true), POLL_INTERVAL_MS);
     liveIntervalRef.current = setInterval(() => fetchLiveSessions(), 5000);
     
+    const handleClearEvent = () => setComments([]);
+    window.addEventListener('feed-cleared', handleClearEvent);
+    
     return () => {
       clearInterval(intervalRef.current);
       clearInterval(liveIntervalRef.current);
+      window.removeEventListener('feed-cleared', handleClearEvent);
     };
   }, [fetchFlagged, fetchLiveSessions]);
 
@@ -121,8 +125,7 @@ export default function Dashboard({ isAuthenticated, onLogin }) {
         <div className="page-hero">
           <h1>🛡️ Threat Intelligence Feed</h1>
           <p>
-            Scan any YouTube video for impersonators, homoglyph obfuscation, and scam patterns.
-            {lastFetch && (
+            Scan any YouTube video for impersonators and scam patterns. {lastFetch && (
               <span style={{ color: 'var(--color-text-3)', marginLeft: 8 }}>
                 Last updated {lastFetch.toLocaleTimeString()}
               </span>

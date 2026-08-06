@@ -103,17 +103,17 @@ function AppContent() {
     }
   };
 
-  const handleRefresh = async () => {
+  const handleClear = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${ORCHESTRATOR_URL}/flagged-comments`);
+      const res = await fetch(`${ORCHESTRATOR_URL}/clear-feed`, { method: 'POST' });
       if (res.ok) {
-        const data = await res.json();
-        setCommentCount(data.length);
-        addToast('Data refreshed successfully', 'success');
+        setCommentCount(0);
+        addToast('Feed cleared', 'success');
+        window.dispatchEvent(new Event('feed-cleared'));
       }
     } catch (err) {
-      addToast('Failed to refresh data', 'error');
+      addToast('Failed to clear feed', 'error');
     } finally {
       setLoading(false);
     }
@@ -123,7 +123,7 @@ function AppContent() {
     <div className="app-shell">
       <Header
         count={commentCount}
-        onRefresh={handleRefresh}
+        onClear={handleClear}
         loading={loading}
         isAuthenticated={isAuthenticated}
         onLogin={handleLogin}
