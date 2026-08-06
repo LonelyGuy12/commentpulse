@@ -11,7 +11,7 @@ export default function Header({ count, onClear, loading, isAuthenticated, onLog
   return (
     <header className="header">
       <Link to="/" className="header-brand">
-        <div className="header-logo">🛡️</div>
+        <img src="/favicon.png" alt="Logo" className="header-logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
         <span className="header-title">CommentPulse</span>
       </Link>
 

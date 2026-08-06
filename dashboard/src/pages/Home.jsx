@@ -90,7 +90,9 @@ export default function Home() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">🛡️</div>
+            <div className="feature-icon">
+              <img src="/favicon.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
+            </div>
             <h3 className="feature-title">Obfuscated Link Detection</h3>
             <p className="feature-description">
               Identify hidden phishing links and scam URLs disguised with unicode characters and URL shorteners.
@@ -185,7 +187,7 @@ export default function Home() {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-brand">
-            <div className="footer-logo">🛡️</div>
+            <img src="/favicon.png" alt="Logo" className="footer-logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
             <span className="footer-title">CommentPulse</span>
           </div>
           <p className="footer-text">

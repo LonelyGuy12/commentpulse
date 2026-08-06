@@ -123,7 +123,10 @@ export default function Dashboard({ isAuthenticated, onLogin }) {
       <main className="main-content">
         {/* Page hero */}
         <div className="page-hero">
-          <h1>🛡️ Threat Intelligence Feed</h1>
+          <h1>
+            <img src="/favicon.png" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', verticalAlign: 'bottom', marginRight: '12px' }} />
+            Threat Intelligence Feed
+          </h1>
           <p>
             Scan any YouTube video for impersonators and scam patterns. {lastFetch && (
               <span style={{ color: 'var(--color-text-3)', marginLeft: 8 }}>
