@@ -2,7 +2,7 @@
 
 import { Link, useLocation } from 'react-router-dom';
 
-const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL ?? 'http://localhost:3001';
+const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL || (import.meta.env.DEV ? 'http://localhost:3001' : '');
 
 export default function Header({ count, onClear, loading, isAuthenticated, onLogin }) {
   const location = useLocation();

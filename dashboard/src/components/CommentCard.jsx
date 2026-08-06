@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL ?? 'http://localhost:3001';
+const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL || (import.meta.env.DEV ? 'http://localhost:3001' : '');
 
 /* ── Helpers ──────────────────────────────────────────────────────────── */
 

@@ -5,7 +5,7 @@ import CommentCard from '../components/CommentCard.jsx';
 import VideoScanner from '../components/VideoScanner.jsx';
 import LiveSessions from '../components/LiveSessions.jsx';
 
-const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL ?? 'http://localhost:3001';
+const ORCHESTRATOR_URL = import.meta.env.VITE_ORCHESTRATOR_URL || (import.meta.env.DEV ? 'http://localhost:3001' : '');
 const POLL_INTERVAL_MS = 15_000; // 15 seconds
 
 /* ── Toast helpers ──────────────────────────────────────────────────── */

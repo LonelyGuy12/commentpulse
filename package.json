@@ -1,0 +1,14 @@
+{
+  "name": "commentpulse",
+  "version": "1.0.0",
+  "description": "CommentPulse - Root deployment config",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "install": "cd orchestrator && npm install && cd ../dashboard && npm install",
+    "build": "cd dashboard && npm run build",
+    "start": "cd orchestrator && node src/index.js",
+    "dev": "npm run start"
+  }
+}

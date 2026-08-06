@@ -12,7 +12,12 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import routes from './routes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 
@@ -30,6 +35,13 @@ app.use(express.json());
 // ---------------------------------------------------------------------------
 
 app.use('/', routes);
+
+// Serve static frontend files in production
+const distPath = path.join(__dirname, '../../dashboard/dist');
+app.use(express.static(distPath));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
 // ---------------------------------------------------------------------------
 // Start
