@@ -119,7 +119,9 @@ export function stopSession(videoId) {
  * @returns {object[]}
  */
 export function getSessions() {
-  return [...sessions.values()].map(({ _stopFlag, ...rest }) => rest);
+  return [...sessions.values()]
+    .filter(s => s.status === 'active')
+    .map(({ _stopFlag, ...rest }) => rest);
 }
 
 // ---------------------------------------------------------------------------
