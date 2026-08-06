@@ -11,6 +11,15 @@ import path from 'path';
 const RISK_THRESHOLD = parseInt(process.env.RISK_THRESHOLD ?? '50', 10);
 
 // ---------------------------------------------------------------------------
+
+export function decrementSessionThreats(videoId) {
+  const session = sessions.get(videoId);
+  if (session && session.threatsFlagged > 0) {
+    session.threatsFlagged--;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Session state
 // ---------------------------------------------------------------------------
 

@@ -4,7 +4,7 @@ import { Router } from 'express';
 import { getFlagged, removeById, addFlagged, clearStore, getById } from './store.js';
 import { banUser, fetchLatestComments, markAsSpam } from './youtube.js';
 import { analyzeComment } from './analyzer.js';
-import { startSession, stopSession, getSessions } from './livechat.js';
+import { startSession, stopSession, getSessions, decrementSessionThreats } from './livechat.js';
 import { getAuthUrl, oauth2Client, setTokens, getTokens } from './auth.js';
 
 // ---------------------------------------------------------------------------
@@ -64,6 +64,11 @@ router.post('/ban-user', async (req, res) => {
     }
     const result = await banUser(comment);
     removeById(commentId);
+    
+    if (comment.videoId) {
+      decrementSessionThreats(comment.videoId);
+    }
+    
     return res.json({ ...result, commentId });
   } catch (err) {
     console.error('[Routes] /ban-user error:', err.message);
